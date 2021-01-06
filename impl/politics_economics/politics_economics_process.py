@@ -1,0 +1,58 @@
+import multiprocessing
+import signal
+import os
+import time
+import random
+
+class ExtEvent:
+
+    def __init__(self, name, prob, lifespan, signal, handler):
+        self.name = name
+        self.probability = prob
+        self.lifespan = lifespan
+        self.ttl = -1
+        self.signal = signal
+        self.handler = handler
+
+    def happens(self):
+        return random.random() < self.probability
+
+    def up(self, pid):
+        self.signal(self, pid)
+        self.ttl = self.lifespan
+
+    def down(self, pid):
+        self.signal(self, pid)
+        self.ttl = -1
+
+    def signal(self, pid):
+        os.kill(os.getppid(), self.signal)
+
+class ExtEventSource:
+
+    def __init__(self, name, listEvent, interval):
+       self.name = name
+       self.events = listEvent
+       self.interval = interval
+
+    def deploy(self):
+        for event in self.events:
+            signal.signal(event.signal, event.handler)
+            event.handler = None
+
+        self.process = multiprocessing.Process(target = self.run, args = (self.interval, self.events))
+
+        return self.process
+
+    def run(self):
+        while True :
+            for event in self.events:
+                if event.happens():
+                    event.up(os.getppid())
+                    print("Event ", event.name ," fired signal ", event.signal.name ,"")
+                elif event.ttl == 0:
+                    event.down()
+                elif event.ttl > 0:
+                    event.ttl = -1
+
+            time.sleep(self.interval)

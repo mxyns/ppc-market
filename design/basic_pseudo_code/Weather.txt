@@ -1,0 +1,15 @@
+Weather :
+	onStart :
+		while True :
+			time = -1
+			with lock of shared_time :
+				time = value of shared_time
+
+			if time >= 0 : # process has begun
+				with lock of shared_weather_data :
+					for (info in infosToGenerate) :
+						generate value of info
+						update value of info in shared_weather_data
+
+
+		sleep x time

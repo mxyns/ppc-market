@@ -1,0 +1,23 @@
+Market : (doesn't need multithreading, message gathering is done by main thread of Home Process)
+
+	P_last = P_init # P_t = P_0
+
+	make economics & politics processes
+	set signal handlers
+
+	start economics & politics
+
+	weather = dict()
+
+	while True :
+		get consumption sum from Home Process via home_queue
+		
+		with lock of shared_weather_data :
+			load weather infos from shared_weather_data to weather dictionary
+
+		compute last price with all the data and store in P_last
+
+		with lock of shared_time :
+			increment shared_time value by 1
+
+		sleep x time

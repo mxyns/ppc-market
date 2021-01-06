@@ -1,0 +1,22 @@
+Home Process : 
+	houses = []
+	for i : 0 -> home_count-1 :
+		houses[i] = new Home with id=i, random policy, necessary queue keys
+		houses[i].deploy().start() # make & start thread
+
+	while True :
+		get messages from all houses
+		sum values
+		send sum to market
+		sleep x time
+
+	for house in houses :
+		house.join()
+
+Home Thread : 
+	while True :
+		get last message from market
+		policy communicates with other homes and takes decision (tells how much to buy / sell)
+		send the policy's decision to home process
+
+		sleep x time

@@ -1,0 +1,13 @@
+Politics / Economics Processes : (exactly the same processes, just different events)
+
+	while True :
+		# sending an event's signal to parent toggles its state
+		for each event :
+			if event.happens() : # computes probability
+				notify parent with signal corresponding to event
+			else if event.isDead() : # event is finished
+				notify parent with signal corresponding to event
+			else if event.isAlive() : # event is not done yet
+				decrement event time to live by 1
+	
+	sleep x time
