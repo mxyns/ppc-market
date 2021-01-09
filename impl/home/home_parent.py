@@ -1,6 +1,9 @@
-from home_tests import run_tests
+from impl.home.home_tests import *
 
-if __name__ == "__main__" :
-	print("running home temporary parent")
+if __name__ == "__main__":
 
-	run_tests()
+    # TODO close properly MessageQueues
+    print("running home temporary parent")
+
+    run_tests()
+    queue_tests()
