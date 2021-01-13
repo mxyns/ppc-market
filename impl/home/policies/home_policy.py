@@ -30,7 +30,7 @@ class Policy:
     def __init__(self, initial_cons, initial_prod, behaviour):
         # TODO check types
         self.behaviour = behaviour
-        self.last_decision = False
+        self.last_decision = None
         self.consumption = initial_cons
         self.production = initial_prod
         self.given = 0
@@ -83,8 +83,7 @@ class Policy:
         print(f"{owner.id} -> bitch i'm out")
         # just in case
         if self.has_pending_request:
-            comm_utils.cancelRequest(owner=owner,
-                                     queue=homesQ)  # protects ourselves from receiving new energy transfers
+            comm_utils.cancelRequest(owner=owner, queue=homesQ)  # protects ourselves from receiving new energy transfers
             comm_utils.acceptEnergyTransfersIfAny(owner=owner, queue=homesQ)
 
         # if we're done without being contacted by market we wait for it

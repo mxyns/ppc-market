@@ -17,4 +17,4 @@ def sell_if_no_takers_behaviour(owner, marketQ, homesQ):
         print(f"{owner.id} => im thirsty for energy, gimme {-balance} pls")
         comm_utils.requestEnergy(owner=owner, queue=homesQ, amount=-balance)  # -balance bc balance < 0
 
-    return False, balance
+    return False, owner.policy.current_balance()
