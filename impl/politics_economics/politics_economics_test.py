@@ -1,5 +1,8 @@
 from politics_economics_process import *
 import signal
+import time
+
+#TODO : LifeSpan variable
 
 events = dict()
 events["shortage"] = False
@@ -14,26 +17,26 @@ def run_tests():
 
     sh = ExternalEvent(
         name="shortage",
-        probability=1,
-        lifespan=10,
+        probability=0.00005,
+        lifespan=5,
         sig=signal.SIGUSR1,
-        handler=lambda: fhandler("shortage")
+        handler=lambda _,__: fhandler("shortage")
     )
 
     wr = ExternalEvent(
         name="war",
-        probability=1,
-        lifespan=100,
+        probability=0.000005,
+        lifespan=2,
         sig=signal.SIGUSR2,
-        handler=lambda: fhandler("war")
+        handler=lambda _,__: fhandler("war")
     )
 
     tn = ExternalEvent(
         name="tension",
-        probability=1,
-        lifespan=5,
+        probability=0.00005,
+        lifespan=4,
         sig=signal.SIGWINCH,
-        handler=lambda: fhandler("tension")
+        handler=lambda _,__: fhandler("tension")
     )
 
     listEventE.append(sh)
@@ -43,13 +46,13 @@ def run_tests():
     eco =  ExternalEventSource (
         name="Economics",
         listEvent=listEventE,
-        interval=100
+        interval=1
     )
 
     plt=  ExternalEventSource (
         name="Politics",
         listEvent=listEventP,
-        interval=100
+        interval=1
     )
 
     eco.deploy().start()
@@ -61,4 +64,7 @@ def fhandler(name):
 if __name__ == "__main__":
     run_tests()
     while True:
-        print(events)
+        print("Shortage = ", events.get("shortage"))
+        print("War = ", events.get("war"))
+        print("Tension = ", events.get("tension"))
+        time.sleep(1)

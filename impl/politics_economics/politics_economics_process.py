@@ -18,15 +18,15 @@ class ExternalEvent:
     def happens(self):
         return random.random() < self.probability
 
-    def up(self, pid):
-        self.signal(self, pid)
+    def up(self):
+        self.alerte()
         self.ttl = self.lifespan
 
-    def down(self, pid):
-        self.signal(self, pid)
+    def down(self):
+        self.alerte()
         self.ttl = -1
 
-    def signal(self, pid):
+    def alerte(self):
         os.kill(os.getppid(), self.signal)
 
 
@@ -42,7 +42,7 @@ class ExternalEventSource:
             signal.signal(event.signal, event.handler)
             event.handler = None
 
-        self.process = multiprocessing.Process(target=self.run, args=(self.interval, self.events))
+        self.process = multiprocessing.Process(target=self.run)
 
         return self.process
 
@@ -50,11 +50,10 @@ class ExternalEventSource:
         while True:
             for event in self.events:
                 if event.happens():
-                    event.up(os.getppid())
+                    event.up()
                     print("Event ", event.name, " fired signal ", event.signal.name, "")
                 elif event.ttl == 0:
                     event.down()
                 elif event.ttl > 0:
-                    event.ttl = -1
-
+                    event.ttl -= 1
             time.sleep(self.interval)
