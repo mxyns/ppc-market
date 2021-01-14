@@ -18,7 +18,7 @@ class Behaviours(Enum):
         return random.choice(list([self.ALWAYS_GIVE, self.ALWAYS_SELL_EXCESS, self.SELL_IF_NO_TAKERS]))
 
 
-def new_policy(behaviour, initial_cons=100, initial_prod=100):
+def new_policy(behaviour, initial_cons=100, initial_prod=150):
     if behaviour is None:
         raise ValueError()
     else:
@@ -92,7 +92,7 @@ class Policy:
 
         # if we're done without being contacted by market we wait for it
         if market_msg is None:
-            print(f"home {owner.id} waiting")
+            print(f"home {owner.id} waiting on mailbox {comm_utils.market_request_id(owner.id)}")
             market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.market_request_id(owner.id),
                                                    block=True)  # blocking
             print(f"{owner.id} -> market told me '{market_msg}'")

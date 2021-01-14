@@ -55,7 +55,7 @@ class Home:
     def sendDecision(self, queue, consumption):
         sellbuy = "buys" if consumption > 0 else "sells"
         print(f"It is I (home {self.id}) who {sellbuy} {abs(consumption)}J to market")
-        queue.send(message=str(consumption), type=comm_utils.MARKET_PURCHASE_REPLY_ID)
+        queue.send(message=str(consumption), type=comm_utils.market_transfer_id(self.id))
 
 
 def is_number(var):

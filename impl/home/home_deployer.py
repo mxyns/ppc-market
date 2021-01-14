@@ -45,8 +45,12 @@ class HomeDeployer:
 
         if self.homes is None:
             self.homes = [
-                Home((i, self.home_count), self.interval, self.slot_timeout, randomPolicy(), self.homes_queue_key,
-                     self.market_queue_key) for i in range(0, self.home_count.value)]
+                Home(id_count_tuple=(i, self.home_count),
+                     interval=self.interval,
+                     slot_timeout=self.slot_timeout,
+                     policy=randomPolicy(),
+                     homes_queue_key=self.homes_queue_key,
+                     market_queue_key=self.market_queue_key) for i in range(0, self.home_count.value)]
 
         time = -1
 

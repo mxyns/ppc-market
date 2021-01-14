@@ -22,7 +22,7 @@ if __name__ == "__main__":
     print(f"MARKET_KEY = {market_queue.key}\nHOME_KEY = {homes_queue.key}")
 
     shared_house_count = mp.Value('i', 2)
-    deployer = HomeDeployer(.01, homes_queue_key=homes_queue.key, market_queue_key=market_queue.key, home_count=shared_house_count)
+    deployer = HomeDeployer(interval=1, homes_queue_key=homes_queue.key, market_queue_key=market_queue.key, home_count=shared_house_count)
     deployer.deploy().start()
 
     weather_info = [
@@ -38,8 +38,6 @@ if __name__ == "__main__":
         interval=.1,
         P_init=100,
         thread_pool_size=8,
-        betas=[random() - 0.5 for _ in range(len(weather_info))]
-              + [random()],
         alphas=[random() + 1 for _ in range(deployer.home_count.value)],
         gamma=1.2,
         weather_source=weather_source,

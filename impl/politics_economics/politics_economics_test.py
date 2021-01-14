@@ -45,13 +45,13 @@ def run_tests():
 
     eco =  ExternalEventSource (
         name="Economics",
-        listEvent=listEventE,
+        events=listEventE,
         interval=1
     )
 
     plt=  ExternalEventSource (
         name="Politics",
-        listEvent=listEventP,
+        events=listEventP,
         interval=1
     )
 

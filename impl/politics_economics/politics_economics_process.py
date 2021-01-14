@@ -32,9 +32,9 @@ class ExternalEvent:
 
 class ExternalEventSource:
 
-    def __init__(self, name, listEvent, interval):
+    def __init__(self, name, events, interval):
         self.name = name
-        self.events = listEvent
+        self.events = events
         self.interval = interval
         self.process = None
 
