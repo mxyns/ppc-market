@@ -17,9 +17,11 @@ class Home:
         self.homes_queue_key = homes_queue_key
 
         self.policy = policy
+        self.thread = None
 
     def deploy(self):
         self.thread = Thread(target=self.run)
+        self.thread.name = "home-" + str(self.id)
         return self.thread
 
     def run(self):

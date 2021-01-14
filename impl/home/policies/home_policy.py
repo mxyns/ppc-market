@@ -13,6 +13,10 @@ class Behaviours(Enum):
     ALWAYS_GIVE = always_give_behaviour
     SELL_IF_NO_TAKERS = sell_if_no_takers_behaviour
 
+    def random(self):
+        # can't list Enum bc attributes are functions, idk why
+        return random.choice(list([self.ALWAYS_GIVE, self.ALWAYS_SELL_EXCESS, self.SELL_IF_NO_TAKERS]))
+
 
 def new_policy(behaviour, initial_cons=100, initial_prod=100):
     if behaviour is None:
@@ -22,7 +26,7 @@ def new_policy(behaviour, initial_cons=100, initial_prod=100):
 
 
 def randomPolicy():
-    return random.choice(list(Behaviours))
+    return new_policy(behaviour=Behaviours.random(Behaviours))
 
 
 class Policy:
@@ -57,7 +61,7 @@ class Policy:
             if market_msg is None:  # if market hasn't contacted us yet
                 # check if we have a msg from market
                 # TODO change type_id if we use a single Q for all market-home communication
-                market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.MARKET_PURCHASE_REQUEST_ID)
+                market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.market_request_id(owner.id))
                 # we store the last time we checked and we didn't have a message, this reset the timeout
                 if market_msg is None:
                     start = time.time()
@@ -89,7 +93,7 @@ class Policy:
         # if we're done without being contacted by market we wait for it
         if market_msg is None:
             print(f"home {owner.id} waiting")
-            market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.MARKET_PURCHASE_REQUEST_ID,
+            market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.market_request_id(owner.id),
                                                    block=True)  # blocking
             print(f"{owner.id} -> market told me '{market_msg}'")
 

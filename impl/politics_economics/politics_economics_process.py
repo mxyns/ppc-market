@@ -14,19 +14,19 @@ class ExternalEvent:
         self.ttl = -1
         self.signal = sig
         self.handler = handler
-
+        
     def happens(self):
         return random.random() < self.probability
 
     def up(self):
-        self.alerte()
+        self.alert()
         self.ttl = self.lifespan
 
     def down(self):
-        self.alerte()
+        self.alert()
         self.ttl = -1
 
-    def alerte(self):
+    def alert(self):
         os.kill(os.getppid(), self.signal)
 
 
@@ -36,6 +36,7 @@ class ExternalEventSource:
         self.name = name
         self.events = listEvent
         self.interval = interval
+        self.process = None
 
     def deploy(self):
         for event in self.events:
@@ -43,6 +44,7 @@ class ExternalEventSource:
             event.handler = None
 
         self.process = multiprocessing.Process(target=self.run)
+        self.process.name = f"{self.name}-process"
 
         return self.process
 

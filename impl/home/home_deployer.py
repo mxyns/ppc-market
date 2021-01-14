@@ -22,9 +22,9 @@ class HomeDeployer:
 
         self.homes = homes
         if self.homes is None:
-            self.home_count = 3
+            self.home_count = home_count
         else:
-            self.home_count = len(homes)
+            self.home_count = mp.Value('i', len(homes))
             for home in homes:
                 home.market_queue_key = market_queue_key
                 home.homes_queue_key = homes_queue_key
@@ -38,6 +38,7 @@ class HomeDeployer:
 
         # avoid zombie processes
         self.process.daemon = self.daemon
+        self.process.name = "home_deployer-" + str(self.home_count.value)
         return self.process
 
     def run(self):
@@ -45,7 +46,7 @@ class HomeDeployer:
         if self.homes is None:
             self.homes = [
                 Home((i, self.home_count), self.interval, self.slot_timeout, randomPolicy(), self.homes_queue_key,
-                     self.market_queue_key) for i in range(0, self.home_count)]
+                     self.market_queue_key) for i in range(0, self.home_count.value)]
 
         time = -1
 
