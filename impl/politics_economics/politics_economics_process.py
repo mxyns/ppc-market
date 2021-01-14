@@ -14,7 +14,7 @@ class ExternalEvent:
         self.ttl = -1
         self.signal = sig
         self.handler = handler
-        
+
     def happens(self):
         return random.random() < self.probability
 
@@ -32,11 +32,12 @@ class ExternalEvent:
 
 class ExternalEventSource:
 
-    def __init__(self, name, events, interval):
+    def __init__(self, name, events, interval, daemon=False):
         self.name = name
         self.events = events
         self.interval = interval
         self.process = None
+        self.daemon = daemon
 
     def deploy(self):
         for event in self.events:
@@ -44,11 +45,15 @@ class ExternalEventSource:
             event.handler = None
 
         self.process = multiprocessing.Process(target=self.run)
+        self.process.daemon = self.daemon
         self.process.name = f"{self.name}-process"
 
         return self.process
 
     def run(self):
+
+        print(f"[{self.process.name} started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
+
         while True:
             for event in self.events:
                 if event.happens():
@@ -58,4 +63,7 @@ class ExternalEventSource:
                     event.down()
                 elif event.ttl > 0:
                     event.ttl -= 1
-            time.sleep(self.interval)
+            try:
+                time.sleep(self.interval)
+            except KeyboardInterrupt:
+                exit(0)

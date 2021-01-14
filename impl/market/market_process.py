@@ -1,4 +1,5 @@
 import multiprocessing
+import os
 from multiprocessing.pool import ThreadPool
 from random import random
 from time import sleep
@@ -12,6 +13,7 @@ events_presence = []
 
 
 def main(interval,
+         max_market_turns=100,
          P_init=100,
          thread_pool_size=12,
          betas=None,
@@ -22,21 +24,23 @@ def main(interval,
          shared_time=None,
          economics_events=(),
          politics_events=(),
-         house_count=0
+         house_count=None
          ):
-    multiprocessing.current_process().name = "market"
+    process = multiprocessing.current_process()
+    process.name = "market"
+
+    print(f"[{process.name} started. daemon={process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
 
     P_last = P_init  # P = P_0
 
     market_queue = MessageQueue(key=market_queue_key)
-    pool = ThreadPool(thread_pool_size)  # useless with last communication model
 
     # will store last weather info (non shared)
     weather = [None] * len(weather_source.infos)
 
     # deploy economics & politics
-    economics = events.ExternalEventSource(name="economics", events=economics_events, interval=1000).deploy().start()
-    politics = events.ExternalEventSource(name="politics", events=politics_events, interval=1000).deploy().start()
+    events.ExternalEventSource(name="economics", events=economics_events, interval=1000).deploy().start()
+    events.ExternalEventSource(name="politics", events=politics_events, interval=1000).deploy().start()
 
     if betas is None:
         betas = [random() - 0.5 for _ in range(len(weather_source.infos))]
@@ -44,42 +48,49 @@ def main(interval,
 
     weather_source.deploy().start()
 
-    while True:
-        print(f"[market] time is {shared_time.value}")
+    with ThreadPool(thread_pool_size) as pool :
+        turns = 0
+        while turns <= max_market_turns:
+            print(f"[{process.name}] time is {shared_time.value}")
 
-        print(f"[market] getting weather data...")
-        # get weather info
-        with weather_source.shared_data.get_lock():
-            for info in weather_source.infos:
-                weather[info.index] = weather_source.shared_data[info.index]
+            print(f"[{process.name}] getting weather data...")
+            # get weather info
+            with weather_source.shared_data.get_lock():
+                for info in weather_source.infos:
+                    weather[info.index] = weather_source.shared_data[info.index]
 
-        print(f"[market] weather = {weather}")
+            print(f"[{process.name}] weather = {weather}")
 
-        print(f"[market] waiting for houses")
-        # use thread pool to get houses last values
-        consumptions = pool.map(lambda tup: getHouseValue(tup[0], tup[1]),
-                                [(market_queue, i) for i in range(house_count.value)])
+            print(f"[{process.name}] waiting for houses")
+            # use thread pool to get houses last values
+            try :
+                consumptions = pool.map(lambda tup: get_house_consumption(tup[0], tup[1]), [(market_queue, i) for i in range(house_count.value)])
+            except :
+                pool.close()
+                print(f"[{process.name}] error while getting houses values. aborting")
+                exit(0)
 
-        print(f"[market] consumptions = {consumptions}")
+            print(f"[{process.name}] consumptions = {consumptions}")
 
-        # compute P_(t+1)
-        last_price = P_last
-        P_last = evalNewPrice(P_last, gamma, alphas, betas, weather, consumptions, events_presence)
-        print(f"[market] price went from {last_price} to {P_last}")
+            # compute P_(t+1)
+            last_price = P_last
+            P_last = compute_new_price(P_last, gamma, alphas, betas, weather, consumptions, events_presence)
+            print(f"[{process.name}] price went from {last_price} to {P_last}")
 
-        with shared_time.get_lock():
-            shared_time.value += 1
+            with shared_time.get_lock():
+                shared_time.value += 1
 
-        sleep(interval)
-
-
-def getHouseValue(queue, house_id):
-    print(f"[market] asking house {house_id} for consumption at mailbox {comm.market_request_id(house_id)}")
-    comm.sendConsumptionRequest(queue=queue, id=house_id)
-    return comm.awaitConsumptionResponse(queue=queue, id=house_id)
+            turns += 1
+            sleep(interval)
 
 
-def evalNewPrice(P_last, gamma, alphas, betas, weather, homes_consumptions, events_presence):
+def get_house_consumption(queue, house_id):
+    # print(f"[{process.name}] asking house {house_id} for consumption at mailbox {comm.market_request_id(house_id)}")
+    comm.send_consumption_request(queue=queue, id=house_id)
+    return comm.await_consumption_response(queue=queue, id=house_id)
+
+
+def compute_new_price(P_last, gamma, alphas, betas, weather, homes_consumptions, events_presence):
     P_new = gamma * P_last  # compute P_t+1 value
 
     # alphas
@@ -97,7 +108,7 @@ def evalNewPrice(P_last, gamma, alphas, betas, weather, homes_consumptions, even
 
 
 # toggle events_presence (f_i,t) coefficient (beta = 1 means the event is happening)
-def toggleExternalFactor(name):
+def toggle_external_factor(name):
     events_presence[name] = 1 if events_presence[name] == 0 else 0
 
 

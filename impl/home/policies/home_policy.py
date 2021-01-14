@@ -6,6 +6,8 @@ from enum import Enum
 from impl.home.policies.home_behaviour_give_excess import always_give_behaviour
 from impl.home.policies.home_behaviour_sell_excess import always_sell_excess_behaviour
 from impl.home.policies.home_behaviour_sell_if_no_takers import sell_if_no_takers_behaviour
+from impl.home.home_comm_utils import cprint
+
 
 
 class Behaviours(Enum):
@@ -60,41 +62,40 @@ class Policy:
         while (time.time() - start) < owner.slot_timeout:
             if market_msg is None:  # if market hasn't contacted us yet
                 # check if we have a msg from market
-                # TODO change type_id if we use a single Q for all market-home communication
-                market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.market_request_id(owner.id))
+                market_msg = comm_utils.get_last_message(queue=marketQ, type_id=comm_utils.market_request_id(owner.id))
                 # we store the last time we checked and we didn't have a message, this reset the timeout
                 if market_msg is None:
                     start = time.time()
-                    print(f"{owner.id} -> still no msg... {market_msg}")
+                    cprint(owner,  f"{owner.id} -> still no msg... {market_msg}")
                 else:
-                    print(f"{owner.id} -> msg from market !!!! {market_msg} starting slot timeout")
+                    cprint(owner,  f"{owner.id} -> msg from market !!!! {market_msg} starting slot timeout")
 
             # accept energy transfers
             if owner.policy.has_pending_request:
-                comm_utils.acceptEnergyTransfersIfAny(owner=owner, queue=homesQ)
+                comm_utils.accept_energy_transfers_if_any(owner=owner, queue=homesQ)
 
             # heuristic/behaviour returns (done, value)
             decision = self.behaviour(owner, marketQ=marketQ, homesQ=homesQ)
             if decision[0]:  # if done
                 self.last_decision = decision[1]
-                print(f"{owner.id} => i'm done!")
+                cprint(owner,  f"{owner.id} => i'm done!")
                 break
 
             # sleep the required interval or less to answer the market's request in time
             time_left = abs(owner.slot_timeout - (time.time() - start))
             time.sleep(owner.interval if owner.interval < time_left else time_left)
 
-        print(f"{owner.id} -> bitch i'm out")
+        cprint(owner,  f"{owner.id} -> bitch i'm out")
         # just in case
         if self.has_pending_request:
-            comm_utils.cancelRequest(owner=owner, queue=homesQ)  # protects ourselves from receiving new energy transfers
-            comm_utils.acceptEnergyTransfersIfAny(owner=owner, queue=homesQ)
+            comm_utils.cancel_request(owner=owner, queue=homesQ)  # protects ourselves from receiving new energy transfers
+            comm_utils.accept_energy_transfers_if_any(owner=owner, queue=homesQ)
 
         # if we're done without being contacted by market we wait for it
         if market_msg is None:
-            print(f"home {owner.id} waiting on mailbox {comm_utils.market_request_id(owner.id)}")
-            market_msg = comm_utils.getLastMessage(queue=marketQ, type_id=comm_utils.market_request_id(owner.id),
-                                                   block=True)  # blocking
-            print(f"{owner.id} -> market told me '{market_msg}'")
+            cprint(owner,  f"home {owner.id} waiting on mailbox {comm_utils.market_request_id(owner.id)}")
+            market_msg = comm_utils.get_last_message(queue=marketQ, type_id=comm_utils.market_request_id(owner.id),
+                                                     block=True)  # blocking
+            cprint(owner,  f"{owner.id} -> market told me '{market_msg}'")
 
         return decision[1]

@@ -1,4 +1,5 @@
 import multiprocessing as mp
+import os
 import random
 import math
 from time import sleep
@@ -45,7 +46,7 @@ class BEGWeatherInfo(WeatherInfo):
 
 class WeatherSource:
 
-    def __init__(self, interval, shared_time, shared_data, infos, daemon=True):
+    def __init__(self, interval, shared_time, shared_data, infos, daemon=False):
 
         if not is_number(interval) \
                 or not isinstance(shared_time, mp.sharedctypes.Synchronized) \
@@ -76,8 +77,10 @@ class WeatherSource:
 
     def run(self):
 
+        print(f"[{self.process.name} started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
+
         time = -1
-        while time and time >= -1:
+        while time >= -1:
 
             time = -1
             with self.shared_time.get_lock():
@@ -88,7 +91,10 @@ class WeatherSource:
                     for i in range(len(self.infos)):
                         self.shared_data[i] = self.infos[i].eval(time)
 
-            sleep(self.interval / 1000)
+            try:
+                sleep(self.interval)
+            except KeyboardInterrupt:
+                exit(0)
 
 
 def is_number(var):

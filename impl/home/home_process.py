@@ -2,11 +2,13 @@ from threading import Thread
 import sysv_ipc
 from time import sleep
 import impl.home.home_comm_utils as comm_utils
+from impl.home.home_comm_utils import cprint
+
 
 
 class Home:
 
-    def __init__(self, id_count_tuple, interval, slot_timeout, policy, market_queue_key=None, homes_queue_key=None):
+    def __init__(self, id_count_tuple, interval, slot_timeout, policy, market_queue_key=None, homes_queue_key=None, see_thoughts=False, out="/ppc/houses/"):
         self.id = id_count_tuple[0]
         self.home_count = id_count_tuple[1]
 
@@ -19,13 +21,16 @@ class Home:
         self.policy = policy
         self.thread = None
 
+        self.see_thoughts = see_thoughts
+        self.out = out + ("/" if not out.endswith("/") else "") + str(self.id)
+
     def deploy(self):
         self.thread = Thread(target=self.run)
         self.thread.name = "home-" + str(self.id)
         return self.thread
 
     def run(self):
-        print(f"hi from house #{self.id}")
+        cprint(self, f"hi from house #{self.id}")
         market_queue = sysv_ipc.MessageQueue(key=self.market_queue_key)
         homes_queue = sysv_ipc.MessageQueue(key=self.homes_queue_key)
 
@@ -48,13 +53,13 @@ class Home:
 
     def sendEnergy(self, queue, destination, count):
 
-        print(f"It is I (home {self.id}) who sends {count}J to home {destination} at slot {comm_utils.energy_transfer_id(destination)}")
-        comm_utils.sendEnergy(queue=queue, amount=count, destination=destination)
+        cprint(self, f"It is I (home {self.id}) who sends {count}J to home {destination} at slot {comm_utils.energy_transfer_id(destination)}")
+        comm_utils.send_energy(queue=queue, amount=count, destination=destination)
         self.policy.given += count
 
     def sendDecision(self, queue, consumption):
         sellbuy = "buys" if consumption > 0 else "sells"
-        print(f"It is I (home {self.id}) who {sellbuy} {abs(consumption)}J to market")
+        cprint(self, f"It is I (home {self.id}) who {sellbuy} {abs(consumption)}J to market")
         queue.send(message=str(consumption), type=comm_utils.market_transfer_id(self.id))
 
 

@@ -1,3 +1,5 @@
+import os
+
 from impl.home.home_process import Home
 from impl.home.policies.home_policy import randomPolicy
 import multiprocessing as mp
@@ -7,7 +9,7 @@ from impl.home.home_process import is_number
 class HomeDeployer:
 
     def __init__(self, interval=1000, slot_timeout=1.0, homes_queue_key=None, market_queue_key=None, home_count=3,
-                 daemon=True, homes=None):
+                 daemon=False, homes=None):
 
         # TODO check type
         if not is_number(interval) \
@@ -43,6 +45,8 @@ class HomeDeployer:
 
     def run(self):
 
+        print(f"[{self.process.name} started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
+
         if self.homes is None:
             self.homes = [
                 Home(id_count_tuple=(i, self.home_count),
@@ -54,11 +58,11 @@ class HomeDeployer:
 
         time = -1
 
-        print("starting homes")
+        print(f"[{self.process.name}] starting homes")
         for i, home in enumerate(self.homes):
             home.deploy().start()
-            print(f"started home #{i}")
+            print(f"[{self.process.name}] started home #{i}")
 
-        print("waiting for homes")
+        print(f"[{self.process.name}] waiting for homes")
         for home in self.homes:
             home.thread.join()
