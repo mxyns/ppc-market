@@ -15,6 +15,8 @@ MAX_ENERGY_REQUEST_ID = (1 << 30) - 1  # max id of a home
 
 def energy_request_id(house_id):
     return min(1 + house_id, MAX_ENERGY_REQUEST_ID)
+def inverse_energy_request_id(request_id):
+    return max(1, request_id - 1)
 
 
 MIN_ENERGY_TRANSFER_ID = (1 << 30) + 1
@@ -22,11 +24,27 @@ MIN_ENERGY_TRANSFER_ID = (1 << 30) + 1
 
 def energy_transfer_id(house_id):
     return max(MIN_ENERGY_TRANSFER_ID + house_id, MIN_ENERGY_TRANSFER_ID)
+def inverse_energy_transfer_id(transfer_id):
+    return max(1, transfer_id - MIN_ENERGY_TRANSFER_ID)
 
 
 # Market queue
-MARKET_PURCHASE_REQUEST_ID = 1
-MARKET_PURCHASE_REPLY_ID = 2
+MAX_MARKET_PURCHASE_REQUEST_ID = (1 << 30) - 1
+
+
+def market_request_id(house_id):
+    return min(1 + house_id, MAX_ENERGY_REQUEST_ID)
+def inverse_market_request_id(request_id):
+    return max(1, request_id - 1)
+
+MIN_MARKET_PURCHASE_REPLY_ID = (1 << 30) + 1
+
+
+def market_transfer_id(house_id):
+    return max(MIN_ENERGY_TRANSFER_ID + house_id, MIN_ENERGY_TRANSFER_ID)
+def inverse_market_transfer_id(purchase_id):
+    return max(1, purchase_id - MIN_MARKET_PURCHASE_REPLY_ID)
+
 
 
 def getLastMessage(queue, type_id, block=False):
@@ -46,16 +64,15 @@ def getLastMessage(queue, type_id, block=False):
 
 def getMessage(queue, type_id, block=False):
     msg = None
-    try :
+    try:
         msg = queue.receive(block=block, type=type_id)
-    except sysv_ipc.BusyError :
+    except sysv_ipc.BusyError:
         return None, None
-    else :
+    else:
         return msg
 
 
 def requestEnergy(owner, queue, amount):
-
     print(f"[requestEnergy] {owner.id} tries to request {amount} energy")
     print(f"[requestEnergy] {owner.id} has {'a' if owner.policy.has_pending_request else 'no'} pending request")
     if owner.policy.has_pending_request:
@@ -63,11 +80,11 @@ def requestEnergy(owner, queue, amount):
 
     queue.send(str(amount), type=energy_request_id(owner.id))
     owner.policy.has_pending_request = True
-    print(f"[requestEnergy] {owner.id} sent a request and now has {'a' if owner.policy.has_pending_request else 'no'} pending request")
+    print(
+        f"[requestEnergy] {owner.id} sent a request and now has {'a' if owner.policy.has_pending_request else 'no'} pending request")
 
 
 def retrieveEnergyTransfers(owner, queue):
-
     messages = []
 
     print(f"{owner.id} => did anyone send me sum energy at {energy_transfer_id(owner.id)} ?")
@@ -82,7 +99,6 @@ def retrieveEnergyTransfers(owner, queue):
 
 
 def acceptEnergyTransfersIfAny(owner, queue):
-
     replies = retrieveEnergyTransfers(owner, queue)
     for reply in replies:  # reply is (message(string of float), msg_id)
         amount = float(reply[0])
@@ -99,8 +115,7 @@ def cancelRequest(owner, queue):
 
 
 def getSomeEnergyRequest(queue, max_to_give=None, block=False):
-
-    message, id = getMessage(queue=queue, type_id=-MAX_ENERGY_REQUEST_ID, block=block) # get any energy request message
+    message, id = getMessage(queue=queue, type_id=-MAX_ENERGY_REQUEST_ID, block=block)  # get any energy request message
     if max_to_give is None or max_to_give >= float(message) >= 0:
         # <=> we dont have any max limit or max_to_give >= 0 && float(message) <= max_to_give
         return message, id
@@ -112,3 +127,14 @@ def getSomeEnergyRequest(queue, max_to_give=None, block=False):
 
 def sendEnergy(queue, amount, destination):
     queue.send(message=str(amount), type=energy_transfer_id(destination))
+
+
+def sendConsumptionRequest(queue, id):
+
+    # TODO give weather info to houses
+    queue.send(message=f"how much house {id} pls?", type=market_request_id(id))
+
+
+def awaitConsumptionResponse(queue, id):
+    msg, id = queue.receive(type=market_transfer_id(id), block=True)
+    return (msg, inverse_market_transfer_id(id))

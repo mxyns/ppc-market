@@ -32,17 +32,19 @@ class ExternalEvent:
 
 class ExternalEventSource:
 
-    def __init__(self, name, listEvent, interval):
+    def __init__(self, name, events, interval):
         self.name = name
-        self.events = listEvent
+        self.events = events
         self.interval = interval
+        self.process = None
 
     def deploy(self):
         for event in self.events:
             signal.signal(event.signal, event.handler)
             event.handler = None
 
-        self.process = multiprocessing.Process(target=self.run, args=(self.interval, self.events))
+        self.process = multiprocessing.Process(target=self.run)
+        self.process.name = f"{self.name}-process"
 
         return self.process
 
