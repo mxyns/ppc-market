@@ -14,27 +14,27 @@ class ExternalEvent:
         self.ttl = -1
         self.signal = sig
         self.handler = handler
-
+        
     def happens(self):
         return random.random() < self.probability
 
-    def up(self, pid):
-        self.signal(self, pid)
+    def up(self):
+        self.alert()
         self.ttl = self.lifespan
 
-    def down(self, pid):
-        self.signal(self, pid)
+    def down(self):
+        self.alert()
         self.ttl = -1
 
-    def signal(self, pid):
+    def alert(self):
         os.kill(os.getppid(), self.signal)
 
 
 class ExternalEventSource:
 
-    def __init__(self, name, events, interval):
+    def __init__(self, name, listEvent, interval):
         self.name = name
-        self.events = events
+        self.events = listEvent
         self.interval = interval
         self.process = None
 
@@ -52,11 +52,10 @@ class ExternalEventSource:
         while True:
             for event in self.events:
                 if event.happens():
-                    event.up(os.getppid())
+                    event.up()
                     print("Event ", event.name, " fired signal ", event.signal.name, "")
                 elif event.ttl == 0:
                     event.down()
                 elif event.ttl > 0:
-                    event.ttl = -1
-
+                    event.ttl -= 1
             time.sleep(self.interval)
