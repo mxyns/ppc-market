@@ -54,6 +54,7 @@ class HomeDeployer:
                      slot_timeout=self.slot_timeout,
                      policy=randomPolicy(),
                      homes_queue_key=self.homes_queue_key,
+                     see_thoughts=True,
                      market_queue_key=self.market_queue_key) for i in range(0, self.home_count.value)]
 
         time = -1

@@ -31,7 +31,7 @@ def main(interval,
 
     print(f"[{process.name} started. daemon={process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
 
-    P_last = P_init  # P = P_0
+    current_price = P_init  # P = P_0
 
     market_queue = MessageQueue(key=market_queue_key)
 
@@ -51,17 +51,15 @@ def main(interval,
     with ThreadPool(thread_pool_size) as pool :
         turns = 0
         while turns <= max_market_turns:
-            print(f"[{process.name}] time is {shared_time.value}")
+            print(f"[{process.name}] Time is {shared_time.value}TU")
 
-            print(f"[{process.name}] getting weather data...")
             # get weather info
+            print(f"[{process.name}] Weather :")
             with weather_source.shared_data.get_lock():
                 for info in weather_source.infos:
                     weather[info.index] = weather_source.shared_data[info.index]
+                    print(f"[{process.name}]    - {info.name}   :   {weather[info.index]} {info.unit}")
 
-            print(f"[{process.name}] weather = {weather}")
-
-            print(f"[{process.name}] waiting for houses")
             # use thread pool to get houses last values
             try :
                 consumptions = pool.map(lambda tup: get_house_consumption(tup[0], tup[1]), [(market_queue, i) for i in range(house_count.value)])
@@ -70,12 +68,14 @@ def main(interval,
                 print(f"[{process.name}] error while getting houses values. aborting")
                 exit(0)
 
-            print(f"[{process.name}] consumptions = {consumptions}")
+            print(f"[{process.name}] Houses :")
+            for i, cons in enumerate(consumptions) :
+                print(f"[{process.name}]    - House {i} :   {float(cons[0])}EU  {current_price*float(cons[0])}MU") # EU = Energy Unit, MU = Money Unit
 
             # compute P_(t+1)
-            last_price = P_last
-            P_last = compute_new_price(P_last, gamma, alphas, betas, weather, consumptions, events_presence)
-            print(f"[{process.name}] price went from {last_price} to {P_last}")
+            last_price = current_price
+            current_price = compute_new_price(current_price, gamma, alphas, betas, weather, consumptions, events_presence)
+            print(f"[{process.name}] Price went from {last_price}MU to {current_price}MU")
 
             with shared_time.get_lock():
                 shared_time.value += 1
@@ -95,12 +95,12 @@ def compute_new_price(P_last, gamma, alphas, betas, weather, homes_consumptions,
 
     # alphas
     internal = [float(x[0]) for x in homes_consumptions]
-    print(P_new, " += ", internal, " * ", alphas)
+    # print(P_new, " += ", internal, " * ", alphas)
     for i in range(len(internal)):
         P_new += alphas[i] * internal[i]
 
     external = weather + events_presence
-    print(P_new, " += ", external, " * ", betas)
+    # print(P_new, " += ", external, " * ", betas)
     for i, factor in enumerate(external):
         P_new += betas[i] * factor
 

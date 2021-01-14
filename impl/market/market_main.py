@@ -19,8 +19,8 @@ def deploy_program(homes_queue_key, market_home_key, max_market_turns):
     deployer.deploy().start()
 
     weather_info = [
-        GaussianWeatherInfo(name="Humidity", mu=20, sigma=5),
-        BEGWeatherInfo(name="Temperature", limit=38, tau=50)
+        GaussianWeatherInfo(name="Humidity", unit="%", mu=20, sigma=5),
+        BEGWeatherInfo(name="Temperature", unit="°C", limit=38, tau=50)
     ]
     weather_source = WeatherSource(interval=.05,
                                    shared_time=shared_time,

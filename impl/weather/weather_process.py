@@ -7,7 +7,7 @@ from time import sleep
 
 class WeatherInfo:
 
-    def __init__(self, index, name, info_type="Dummy"):
+    def __init__(self, index, name, unit="IS", info_type="Dummy"):
         if not is_number(index) \
                 or not isinstance(name, str) \
                 or not isinstance(info_type, str):
@@ -16,6 +16,7 @@ class WeatherInfo:
         self.index = index
         self.name = name
         self.type = info_type
+        self.unit = unit
 
     def eval(self, time):
         return None
@@ -23,8 +24,8 @@ class WeatherInfo:
 
 class GaussianWeatherInfo(WeatherInfo):
 
-    def __init__(self, name, mu, sigma, index=-1):
-        super().__init__(index, name, "Gaussian")
+    def __init__(self, name, mu, sigma, unit="IS", index=-1):
+        super().__init__(index=index, name=name, info_type="Gaussian", unit=unit)
         # TODO check for type
         self.mu = mu
         self.sigma = sigma
@@ -34,8 +35,8 @@ class GaussianWeatherInfo(WeatherInfo):
 
 
 class BEGWeatherInfo(WeatherInfo):
-    def __init__(self, name, limit, tau, index=-1):
-        super().__init__(index, name, "Bounded Exponential Growth")
+    def __init__(self, name, limit, tau, unit="IS", index=-1):
+        super().__init__(index=index, name=name, info_type="Bounded Exponential Growth", unit=unit)
         # TODO check for type
         self.limit = limit
         self.tau = tau
@@ -53,7 +54,7 @@ class WeatherSource:
                 or not isinstance(shared_data, mp.sharedctypes.SynchronizedArray) \
                 or not isinstance(daemon, bool) \
                 or False in [isinstance(el, WeatherInfo) for el in infos]:
-            raise ValueError(f"wrong parameters given : \nindex={index}\nname={name}\ngenerator={generator}")
+            raise ValueError(f"wrong parameters given")
 
         self.interval = interval
         self.shared_time = shared_time

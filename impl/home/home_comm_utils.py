@@ -149,4 +149,4 @@ def await_consumption_response(queue, id):
 
 def cprint(home, *args):
     if home.see_thoughts :
-        cprint(owner,  *args, file=home.out)
+        print(*args)
