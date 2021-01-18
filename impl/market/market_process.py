@@ -9,7 +9,7 @@ from sysv_ipc import MessageQueue
 import impl.home.home_comm_utils as comm
 import impl.politics_economics.politics_economics_process as events
 
-events_presence = []
+events_presence = dict()
 
 
 def main(interval,
@@ -39,18 +39,17 @@ def main(interval,
     weather = [None] * len(weather_source.infos)
 
     # deploy economics & politics
-    events.ExternalEventSource(name="economics", events=economics_events, interval=1000).deploy().start()
-    events.ExternalEventSource(name="politics", events=politics_events, interval=1000).deploy().start()
+    events.ExternalEventSource(name="economics", events=economics_events, interval=.5, daemon=True).deploy().start()
+    events.ExternalEventSource(name="politics", events=politics_events, interval=.5, daemon=True).deploy().start()
 
     if betas is None:
-        betas = [random() - 0.5 for _ in range(len(weather_source.infos))]
+        betas = [random() + 1 for _ in range(len(weather_source.infos))]
         betas += [2 * random() + 1.2 for _ in range(len(economics_events) + len(politics_events))]
 
-    weather_source.deploy().start()
-
-    with ThreadPool(thread_pool_size) as pool :
+    with ThreadPool(thread_pool_size) as pool:
         turns = 0
         while turns <= max_market_turns:
+            print(f"\n=====================\n")
             print(f"[{process.name}] Time is {shared_time.value}TU")
 
             # get weather info
@@ -60,28 +59,39 @@ def main(interval,
                     weather[info.index] = weather_source.shared_data[info.index]
                     print(f"[{process.name}]    - {info.name}   :   {weather[info.index]} {info.unit}")
 
+            if sum(list(events_presence.values())) > 0:
+                print(f"[{process.name}] Ongoing events :")
+                for event in events_presence:
+                    if events_presence[event] > 0:
+                        print(f"[{process.name}]    - {event} -> x{events_presence[event]}")
+
             # use thread pool to get houses last values
-            try :
-                consumptions = pool.map(lambda tup: get_house_consumption(tup[0], tup[1]), [(market_queue, i) for i in range(house_count.value)])
-            except :
+            try:
+                consumptions = pool.map(lambda tup: get_house_consumption(tup[0], tup[1]),
+                                        [(market_queue, i) for i in range(house_count.value)])
+            except:
                 pool.close()
                 print(f"[{process.name}] error while getting houses values. aborting")
                 exit(0)
 
-            print(f"[{process.name}] Houses :")
-            for i, cons in enumerate(consumptions) :
-                print(f"[{process.name}]    - House {i} :   {float(cons[0])}EU  {current_price*float(cons[0])}MU") # EU = Energy Unit, MU = Money Unit
+            print(f"\n[{process.name}] Houses [{house_count.value}] :")
+            for i, cons in enumerate(consumptions):
+                print(
+                    f"[{process.name}]    - House {i} :   {- float(cons[0])}EU  {- current_price * float(cons[0])}MU")  # EU = Energy Unit, MU = Money Unit
 
             # compute P_(t+1)
             last_price = current_price
-            current_price = compute_new_price(current_price, gamma, alphas, betas, weather, consumptions, events_presence)
-            print(f"[{process.name}] Price went from {last_price}MU to {current_price}MU")
+            current_price = compute_new_price(current_price, gamma, alphas, betas, weather, consumptions,
+                                              events_presence)
+            print(f"\n[{process.name}] Price went from {last_price}MU to {current_price}MU")
 
             with shared_time.get_lock():
                 shared_time.value += 1
 
             turns += 1
             sleep(interval)
+
+            print(f"\n=====================\n")
 
 
 def get_house_consumption(queue, house_id):
@@ -95,23 +105,25 @@ def compute_new_price(P_last, gamma, alphas, betas, weather, homes_consumptions,
 
     # alphas
     internal = [float(x[0]) for x in homes_consumptions]
-    # print(P_new, " += ", internal, " * ", alphas)
+    print(f"[{multiprocessing.current_process().name}]", P_new, " += ", internal, " * ", alphas)
     for i in range(len(internal)):
         P_new += alphas[i] * internal[i]
 
-    external = weather + events_presence
-    # print(P_new, " += ", external, " * ", betas)
+    external = weather + list(events_presence.values())
+    print(f"[{multiprocessing.current_process().name}]", P_new, " += ", external, " * ", betas)
     for i, factor in enumerate(external):
         P_new += betas[i] * factor
 
-    return P_new
+    return max(0, P_new)
 
 
 # toggle events_presence (f_i,t) coefficient (beta = 1 means the event is happening)
-def toggle_external_factor(name):
-    events_presence[name] = 1 if events_presence[name] == 0 else 0
+def toggle_external_factor(name, factor):
+    events_presence[name] = factor if events_presence[name] == 0 else 0
 
 
 def make_event(name, prob, sig, lifespan, handler, args):
-    events_presence.append(0)
-    return events.ExternalEvent(name=name, probability=prob, sig=sig, lifespan=lifespan, handler=lambda: handler(*args))
+    events_presence[name] = 0
+    event = events.ExternalEvent(name=name, probability=prob, sig=sig, lifespan=lifespan,
+                                 handler=lambda _, __: handler(*args))
+    return event

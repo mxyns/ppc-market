@@ -19,7 +19,8 @@ class ExternalEvent:
         return random.random() < self.probability
 
     def up(self):
-        self.alert()
+        if self.ttl < 0:
+            self.alert()
         self.ttl = self.lifespan
 
     def down(self):
@@ -52,13 +53,16 @@ class ExternalEventSource:
 
     def run(self):
 
-        print(f"[{self.process.name} started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
+        print(f"[{self.process.name}] started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
+        print(f"[{self.process.name}] Events : ")
+        for event in self.events:
+            print(f"[{self.process.name}]    - {event.name} : p={event.probability} -> {event.signal}")
 
         while True:
             for event in self.events:
                 if event.happens():
                     event.up()
-                    print("Event ", event.name, " fired signal ", event.signal.name, "")
+                    print(f"[{self.process.name}]", "Event", event.name, "!")
                 elif event.ttl == 0:
                     event.down()
                 elif event.ttl > 0:

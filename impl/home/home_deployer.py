@@ -8,7 +8,7 @@ from impl.home.home_process import is_number
 
 class HomeDeployer:
 
-    def __init__(self, interval=1000, slot_timeout=1.0, homes_queue_key=None, market_queue_key=None, home_count=3,
+    def __init__(self, interval=1000, slot_timeout=1.0, homes_queue_key=None, market_queue_key=None, shared_home_count=None, new_home_count=None,
                  daemon=False, homes=None):
 
         # TODO check type
@@ -23,13 +23,27 @@ class HomeDeployer:
         self.homes_queue_key = homes_queue_key
 
         self.homes = homes
-        if self.homes is None:
-            self.home_count = home_count
-        else:
-            self.home_count = mp.Value('i', len(homes))
-            for home in homes:
+        self.home_count = shared_home_count
+
+        if self.homes is not None:
+            for home in self.homes:
                 home.market_queue_key = market_queue_key
                 home.homes_queue_key = homes_queue_key
+
+        elif new_home_count is not None and new_home_count >= 0 :
+            self.homes = [
+                Home(id_count_tuple=(i, self.home_count),
+                     interval=self.interval,
+                     slot_timeout=self.slot_timeout,
+                     policy=randomPolicy(),
+                     homes_queue_key=self.homes_queue_key,
+                     see_thoughts=False,
+                     market_queue_key=self.market_queue_key) for i in range(0, new_home_count)]
+        else:
+            raise ValueError("wrong parameters for new_home_count / shared_home_count")
+
+        with self.home_count.get_lock():
+            self.home_count.value += len(self.homes)
 
         self.daemon = daemon
         self.process = None
@@ -46,18 +60,6 @@ class HomeDeployer:
     def run(self):
 
         print(f"[{self.process.name} started. daemon={self.process.daemon}. pid={os.getpid()}. ppid={os.getppid()}]")
-
-        if self.homes is None:
-            self.homes = [
-                Home(id_count_tuple=(i, self.home_count),
-                     interval=self.interval,
-                     slot_timeout=self.slot_timeout,
-                     policy=randomPolicy(),
-                     homes_queue_key=self.homes_queue_key,
-                     see_thoughts=True,
-                     market_queue_key=self.market_queue_key) for i in range(0, self.home_count.value)]
-
-        time = -1
 
         print(f"[{self.process.name}] starting homes")
         for i, home in enumerate(self.homes):

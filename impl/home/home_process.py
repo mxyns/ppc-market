@@ -46,18 +46,18 @@ class Home:
                 result = self.policy.last_decision
 
             # tell the market how much we want
-            self.sendDecision(queue=market_queue, consumption=-result)  # blocking
+            self.send_decision(queue=market_queue, consumption=-result)  # blocking
             self.policy.reset()
 
             sleep(self.interval)
 
-    def sendEnergy(self, queue, destination, count):
+    def send_energy(self, queue, destination, count):
 
         cprint(self, f"It is I (home {self.id}) who sends {count}J to home {destination} at slot {comm_utils.energy_transfer_id(destination)}")
         comm_utils.send_energy(queue=queue, amount=count, destination=destination)
         self.policy.given += count
 
-    def sendDecision(self, queue, consumption):
+    def send_decision(self, queue, consumption):
         sellbuy = "buys" if consumption > 0 else "sells"
         cprint(self, f"It is I (home {self.id}) who {sellbuy} {abs(consumption)}J to market")
         queue.send(message=str(consumption), type=comm_utils.market_transfer_id(self.id))

@@ -9,7 +9,6 @@ from impl.home.policies.home_behaviour_sell_if_no_takers import sell_if_no_taker
 from impl.home.home_comm_utils import cprint
 
 
-
 class Behaviours(Enum):
     ALWAYS_SELL_EXCESS = always_sell_excess_behaviour
     ALWAYS_GIVE = always_give_behaviour

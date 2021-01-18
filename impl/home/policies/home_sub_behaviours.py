@@ -12,6 +12,6 @@ def fulfill_some_request_sub_behaviour(owner, queue, block=False):
         sent = min(asked, owner.policy.current_balance())  # give the max we can without being in deficit
         cprint(owner, f"{owner.id} => {id - 1} asked for {asked} energy, imma give u {sent} bro")
         if sent > 0:  # asked > 0 so if sent < 0 it means we are in deficit and we dont wanna get more debts
-            owner.send_energy(queue=queue, destination=id - 1, count=sent)
+            owner.send_energy(queue=queue, destination=comm_utils.inverse_energy_request_id(id), count=sent)
     else:
         cprint(owner, f"{owner.id} => aint no requests for me to fulfill imma keep my energy")
