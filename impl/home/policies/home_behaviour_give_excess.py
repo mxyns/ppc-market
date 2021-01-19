@@ -3,18 +3,17 @@ import impl.home.home_comm_utils as comm_utils
 from impl.home.home_comm_utils import cprint
 
 
+# explained in details under
 def always_give_behaviour(owner, marketQ, homesQ):
     balance = owner.policy.current_balance()
 
-    cprint(owner,  f"{owner.id} => always give balance {balance}")
-
     if balance == 0:
-        cprint(owner,  f"{owner.id} => i have exactly 0 energy left, i cant' give anymore, i'm done")
+        cprint(owner, f"[{owner.id}][always_give] => i have exactly 0 energy left, i cant' give anymore, i'm done")
         return True, balance
     elif balance > 0:
         # non blocking bc we want the loop to keep checking for market messages
         # check if there is a request
-        cprint(owner,  f"{owner.id} => i wanna give sum energy to ma bois")
+        cprint(owner, f"[{owner.id}][always_give] => i wanna give sum energy to ma bois")
         fulfill_some_request_sub_behaviour(owner, homesQ, block=False)
     else:
         comm_utils.request_energy(owner=owner, queue=homesQ, amount=-balance)

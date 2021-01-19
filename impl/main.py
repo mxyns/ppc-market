@@ -10,11 +10,6 @@ import impl.deploy_program as program
 import sysv_ipc
 
 
-# x TODO checker que tout marche bien
-# ~ TODO checker qu'on a tout fait -> manque
-# x TODO trouver une solution qui donne pas un prix nul
-#   TODO ajouter des bails bonus peut etre
-# ~ TODO reformat output
 if __name__ == '__main__':
 
     homes_queue = sysv_ipc.MessageQueue(key=None, flags=sysv_ipc.IPC_CREX)
@@ -26,7 +21,7 @@ if __name__ == '__main__':
 
     processes_to_kill = multiprocessing.Array('i', 6)
     process = mp.Process(target=program.deploy_program,
-                         args=(homes_queue.key, market_queue.key, 100, processes_to_kill))
+                         args=(homes_queue.key, market_queue.key, max_turns, processes_to_kill, silent))
     process.start()
 
     print(f"[{curr.name}] ran program in {process.pid}")
