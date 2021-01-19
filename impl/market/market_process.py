@@ -86,7 +86,7 @@ def main(interval,
             to_print.append(f"\n[{process.name}] Houses [{house_count.value}] :")
             for i, cons in enumerate(consumptions):
                 to_print.append(
-                    f"[{process.name}]    - House {i} :   {- float(cons[0])}EU  {- current_price * float(cons[0])}MU")  # EU = Energy Unit, MU = Money Unit
+                    f"[{process.name}]    - House {i} :   {'+' if -float(cons[0]) > 0 else ''}{- float(cons[0])}EU  {'+' if -float(cons[0]) > 0 else ''}{- current_price * float(cons[0])}MU")  # EU = Energy Unit, MU = Money Unit
 
             # compute P_(t+1)
             last_price = current_price
